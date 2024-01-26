@@ -8,6 +8,7 @@ import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import utilities.screenshot.Screenshot;
 
 import java.time.Duration;
 import java.util.List;
@@ -34,10 +35,16 @@ public class UICommonAction {
         sleep(ms);
     }
 
+    @SneakyThrows
     public WebElement getElement(By by) {
         try {
             return wait.until(ExpectedConditions.presenceOfElementLocated(by));
         } catch (StaleElementReferenceException ex) {
+            return wait.until(ExpectedConditions.presenceOfElementLocated(by));
+        }
+        catch (TimeoutException ex) {
+            new Screenshot().takeScreenshot(driver);
+            driver.navigate().refresh();
             return wait.until(ExpectedConditions.presenceOfElementLocated(by));
         }
     }
@@ -54,6 +61,9 @@ public class UICommonAction {
         common for POM modals
      */
     public List<WebElement> getListElement(By locator) {
+        try {
+            new WebDriverWait(driver, Duration.ofMillis(500)).until(ExpectedConditions.numberOfElementsToBeMoreThan(locator, 0));
+        } catch (TimeoutException ignore) {}
         return driver.findElements(locator).isEmpty()
                 ? driver.findElements(locator)
                 : wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(locator));
@@ -162,12 +172,7 @@ public class UICommonAction {
     }
 
     public String getText(By locator) {
-        String textContent = "";
-        try {
-            textContent = getElement(locator).getText();
-        } catch (StaleElementReferenceException ignore) {
-        }
-        return !textContent.isEmpty() ? textContent : getText(locator);
+        return getAttribute(locator, "innerText");
     }
 
     public String getText(By locator, int index) {
@@ -196,6 +201,7 @@ public class UICommonAction {
     }
 
     public String getAttribute(By locator, int index, String attribute) {
+        wait.until(ExpectedConditions.attributeToBeNotEmpty(getElement(locator, index), attribute));
         try {
             return getElement(locator, index).getAttribute(attribute);
         } catch (StaleElementReferenceException ignore) {
@@ -204,6 +210,7 @@ public class UICommonAction {
     }
 
     public String getAttribute(By locator, String attribute) {
+        wait.until(ExpectedConditions.attributeToBeNotEmpty(getElement(locator), attribute));
         try {
             return getElement(locator).getAttribute(attribute);
         } catch (StaleElementReferenceException ignore) {

@@ -5,13 +5,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import utilities.UICommonAction;
 
-import java.util.ArrayList;
 import java.util.List;
-
-import static java.lang.Thread.sleep;
+import java.util.stream.IntStream;
 
 public class GetImages extends MapsLocator {
     WebDriver driver;
@@ -29,6 +26,7 @@ public class GetImages extends MapsLocator {
     }
 
     public GetImages searchAndSelectFirstResult(String keywords) {
+        System.out.println(keywords);
         commons.sendKeys(searchBox, "%s\n".formatted(keywords));
         return this;
     }
@@ -42,26 +40,33 @@ public class GetImages extends MapsLocator {
         }
     }
 
+    static int count = 0;
+
     @SneakyThrows
     public void getInformation() {
-        List<String> getListURL = new ArrayList<>();
+        List<String> getListURL;
         commons.getElement(listResult);
-        int size = commons.getListElement(listResult).size();
-        if (size > 0) scrollToEnd(listResult, size);
-        size = commons.getListElement(listResult).size();
+        if (commons.getAttribute(listResult, 0, "class").contains("google-symbols")) {
+            count++;
+            getInfo(count);
+        } else {
+            int size = commons.getListElement(listResult).size();
+            if (size > 0) scrollToEnd(listResult, size);
+            size = commons.getListElement(listResult).size();
 
-        for (int index = 0; index <size; index ++) {
-            getListURL.add(commons.getAttribute(listResult, index, "href"));
+            getListURL = IntStream.range(0, size).mapToObj(index -> commons.getAttribute(listResult, index, "href")).toList();
+            for (String url : getListURL) {
+                count++;
+                driver.get(url);
+                getInfo(count);
+            }
         }
+    }
 
-        int count = 0;
-        for (String url : getListURL) {
-            count ++;
-            driver.get(url);
-            System.out.printf("%s, %s%n", count, commons.getText(name));
-            if (!commons.getListElement(phone).isEmpty())
-                System.out.println(commons.getText(phone));
-        }
+    void getInfo(int count) {
+        System.out.printf("%s, %s%n", count, commons.getText(name));
+        if (!commons.getListElement(phone).isEmpty())
+            System.out.println(commons.getText(phone));
     }
 
 }

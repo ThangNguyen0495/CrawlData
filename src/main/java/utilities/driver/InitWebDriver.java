@@ -2,6 +2,7 @@ package utilities.driver;
 
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.Dimension;
+import org.openqa.selenium.PageLoadStrategy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -43,6 +44,7 @@ public class InitWebDriver {
                     chromeOptions.addArguments("--disable-site-isolation-trials");
                     // fix 403 Forbidden
                     chromeOptions.addArguments("--remote-allow-origins=*");
+                    chromeOptions.setPageLoadStrategy(PageLoadStrategy.NONE);
                     driver = new ChromeDriver(chromeOptions);
                 }
             }

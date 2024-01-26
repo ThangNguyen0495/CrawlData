@@ -26,7 +26,7 @@ public class UICommonAction {
 
     public UICommonAction(WebDriver driver) {
         this.driver = driver;
-        wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
         actions = new Actions(driver);
     }
 
@@ -35,7 +35,6 @@ public class UICommonAction {
         sleep(ms);
     }
 
-    @SneakyThrows
     public WebElement getElement(By by) {
         try {
             return wait.until(ExpectedConditions.presenceOfElementLocated(by));
@@ -43,7 +42,6 @@ public class UICommonAction {
             return wait.until(ExpectedConditions.presenceOfElementLocated(by));
         }
         catch (TimeoutException ex) {
-            new Screenshot().takeScreenshot(driver);
             driver.navigate().refresh();
             return wait.until(ExpectedConditions.presenceOfElementLocated(by));
         }
@@ -141,7 +139,7 @@ public class UICommonAction {
         } catch (StaleElementReferenceException | InvalidElementStateException ex) {
             getElement(locator).sendKeys(content);
         }
-        actions.keyDown(Keys.TAB).keyUp(Keys.TAB).build().perform();
+//        actions.keyDown(Keys.TAB).keyUp(Keys.TAB).build().perform();
     }
 
     public void sendKeys(By locator, int index, CharSequence content) {
@@ -152,7 +150,7 @@ public class UICommonAction {
         } catch (StaleElementReferenceException ex) {
             getElement(locator, index).sendKeys(content);
         }
-        actions.keyDown(Keys.TAB).keyUp(Keys.TAB).build().perform();
+//        actions.keyDown(Keys.TAB).keyUp(Keys.TAB).build().perform();
     }
 
     public void uploads(By locator, CharSequence content) {
@@ -210,7 +208,6 @@ public class UICommonAction {
     }
 
     public String getAttribute(By locator, String attribute) {
-        wait.until(ExpectedConditions.attributeToBeNotEmpty(getElement(locator), attribute));
         try {
             return getElement(locator).getAttribute(attribute);
         } catch (StaleElementReferenceException ignore) {

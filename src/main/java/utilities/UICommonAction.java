@@ -40,8 +40,7 @@ public class UICommonAction {
             return wait.until(ExpectedConditions.presenceOfElementLocated(by));
         } catch (StaleElementReferenceException ex) {
             return wait.until(ExpectedConditions.presenceOfElementLocated(by));
-        }
-        catch (TimeoutException ex) {
+        } catch (WebDriverException ex) {
             driver.navigate().refresh();
             return wait.until(ExpectedConditions.presenceOfElementLocated(by));
         }
@@ -60,11 +59,20 @@ public class UICommonAction {
      */
     public List<WebElement> getListElement(By locator) {
         try {
-            new WebDriverWait(driver, Duration.ofMillis(500)).until(ExpectedConditions.numberOfElementsToBeMoreThan(locator, 0));
-        } catch (TimeoutException ignore) {}
-        return driver.findElements(locator).isEmpty()
-                ? driver.findElements(locator)
-                : wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(locator));
+            try {
+                new WebDriverWait(driver, Duration.ofMillis(500)).until(ExpectedConditions.numberOfElementsToBeMoreThan(locator, 0));
+            } catch (TimeoutException ignore) {
+            }
+
+            return driver.findElements(locator).isEmpty()
+                    ? driver.findElements(locator)
+                    : wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(locator));
+        } catch (WebDriverException ex) {
+            driver.navigate().refresh();
+            return driver.findElements(locator).isEmpty()
+                    ? driver.findElements(locator)
+                    : wait.until(ExpectedConditions.presenceOfAllElementsLocatedBy(locator));
+        }
     }
 
     public void click(By locator) {
@@ -136,10 +144,11 @@ public class UICommonAction {
         clear(locator);
         try {
             getElement(locator).sendKeys(content);
-        } catch (StaleElementReferenceException | InvalidElementStateException ex) {
+        } catch (WebDriverException ex) {
+            driver.navigate().refresh();
             getElement(locator).sendKeys(content);
         }
-//        actions.keyDown(Keys.TAB).keyUp(Keys.TAB).build().perform();
+
     }
 
     public void sendKeys(By locator, int index, CharSequence content) {
@@ -199,10 +208,10 @@ public class UICommonAction {
     }
 
     public String getAttribute(By locator, int index, String attribute) {
-        wait.until(ExpectedConditions.attributeToBeNotEmpty(getElement(locator, index), attribute));
         try {
             return getElement(locator, index).getAttribute(attribute);
-        } catch (StaleElementReferenceException ignore) {
+        } catch (WebDriverException ex) {
+            driver.navigate().refresh();
             return getElement(locator, index).getAttribute(attribute);
         }
     }
@@ -210,7 +219,8 @@ public class UICommonAction {
     public String getAttribute(By locator, String attribute) {
         try {
             return getElement(locator).getAttribute(attribute);
-        } catch (StaleElementReferenceException ignore) {
+        } catch (WebDriverException ex) {
+            driver.navigate().refresh();
             return getElement(locator).getAttribute(attribute);
         }
     }
@@ -361,6 +371,10 @@ public class UICommonAction {
     }
 
     public void scrollIntoView(By locator, int index) {
-        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView();", getElement(locator, index));
+        try {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView();", getElement(locator, index));
+        } catch (WebDriverException ex) {
+            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView();", getElement(locator, index));
+        }
     }
 }

@@ -38,13 +38,7 @@ public class InitWebDriver {
                 }
                 default -> {
                     WebDriverManager.chromedriver().setup();
-                    ChromeOptions chromeOptions = new ChromeOptions();
-                    if (headless) chromeOptions.addArguments("--headless");
-                    // fix org.openqa.selenium.WebDriverException: unknown error: cannot determine loading status from no such window
-                    chromeOptions.addArguments("--disable-site-isolation-trials");
-                    // fix 403 Forbidden
-                    chromeOptions.addArguments("--remote-allow-origins=*");
-                    chromeOptions.setPageLoadStrategy(PageLoadStrategy.NONE);
+                    ChromeOptions chromeOptions = getChromeOptions(headless);
                     driver = new ChromeDriver(chromeOptions);
                 }
             }
@@ -52,5 +46,23 @@ public class InitWebDriver {
         if (headless) driver.manage().window().setSize(new Dimension(1920, 1080));
         else driver.manage().window().maximize();
         return driver;
+    }
+
+    private static ChromeOptions getChromeOptions(boolean headless) {
+        ChromeOptions chromeOptions = new ChromeOptions();
+        if (headless) chromeOptions.addArguments("--headless");
+        // fix org.openqa.selenium.WebDriverException: unknown error: cannot determine loading status from no such window
+        chromeOptions.addArguments("--disable-site-isolation-trials");
+        // fix 403 Forbidden
+        chromeOptions.addArguments("--remote-allow-origins=*");
+        chromeOptions.setPageLoadStrategy(PageLoadStrategy.NONE);
+        chromeOptions.addArguments("start-maximized");
+        chromeOptions.addArguments("disable-infobars");
+        chromeOptions.addArguments("--disable-extensions");
+        chromeOptions.addArguments("--no-sandbox");
+        chromeOptions.addArguments("--disable-application-cache");
+        chromeOptions.addArguments("--disable-gpu");
+        chromeOptions.addArguments("--disable-dev-shm-usage");
+        return chromeOptions;
     }
 }

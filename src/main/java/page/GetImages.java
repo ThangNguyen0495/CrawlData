@@ -8,6 +8,7 @@ import org.openqa.selenium.WebDriver;
 import utilities.UICommonAction;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 public class GetImages extends MapsLocator {
@@ -55,11 +56,11 @@ public class GetImages extends MapsLocator {
             size = commons.getListElement(listResult).size();
 
             getListURL = IntStream.range(0, size).mapToObj(index -> commons.getAttribute(listResult, index, "href")).toList();
-            for (String url : getListURL) {
+            getListURL.stream().filter(Objects::nonNull).forEach(url -> {
                 count++;
                 driver.get(url);
                 getInfo(count);
-            }
+            });
         }
     }
 

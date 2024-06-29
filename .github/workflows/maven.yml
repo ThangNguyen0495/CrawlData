@@ -3,10 +3,10 @@ name: Android Appium Tests
 on:
   push:
     branches:
-      - master
+      - dev
   pull_request:
     branches:
-      - master
+      - dev
 
 jobs:
   build:
@@ -36,18 +36,19 @@ jobs:
         echo "Setting up Android SDK..."
         echo "sdk.dir=$env:ANDROID_HOME" > local.properties
         echo "Accepting SDK licenses..."
-        yes | $env:ANDROID_HOME\tools\bin\sdkmanager --licenses
+        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "--licenses" -NoNewWindow -Wait -PassThru | ForEach-Object { $_.StandardInput.WriteLine("y") }
         echo "Installing platform tools and system images..."
-        $env:ANDROID_HOME\tools\bin\sdkmanager "platform-tools" "platforms;android-30" "system-images;android-30;google_apis;x86_64"
+        $result = Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "platform-tools", "platforms;android-30", "system-images;android-30;google_apis;x86_64" -NoNewWindow -Wait -PassThru
+        $result.WaitForExit()
         echo "Android SDK setup completed."
       shell: pwsh
 
     - name: Create AVD
       run: |
         echo "Creating AVD..."
-        $env:ANDROID_HOME\tools\bin\avdmanager create avd -n test_avd -k "system-images;android-30;google_apis;x86_64" -d "pixel"
+        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\avdmanager.bat" -ArgumentList "create avd -n test_avd -k \"system-images;android-30;google_apis;x86_64\" -d \"pixel\"" -NoNewWindow -Wait
         echo "Starting AVD..."
-        Start-Process -FilePath "$env:ANDROID_HOME\emulator\emulator.exe" -ArgumentList "-avd test_avd -no-snapshot-load -no-snapshot-save -no-window" -Wait
+        Start-Process -FilePath "$env:ANDROID_HOME\emulator\emulator.exe" -ArgumentList "-avd test_avd -no-snapshot-load -no-snapshot-save -no-window" -NoNewWindow -Wait
         echo "AVD started."
       shell: pwsh
 
@@ -66,7 +67,7 @@ jobs:
     - name: Run Appium server
       run: |
         echo "Starting Appium server..."
-        Start-Process -FilePath "appium" -ArgumentList "--log-level info" -Wait
+        Start-Process -FilePath "appium" -ArgumentList "--log-level info" -NoNewWindow -Wait
         echo "Appium server started."
       shell: pwsh
 

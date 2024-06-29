@@ -34,12 +34,16 @@ jobs:
     - name: Set up Android SDK
       run: |
         echo "Setting up Android SDK..."
+        $env:ANDROID_HOME="C:\Users\runneradmin\AppData\Local\Android\Sdk"
         echo "sdk.dir=$env:ANDROID_HOME" > local.properties
         echo "Accepting SDK licenses..."
-        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "--licenses" -NoNewWindow -Wait -PassThru | ForEach-Object { $_.StandardInput.WriteLine("y") }
+        $licenses = Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "--licenses" -NoNewWindow -Wait -PassThru
+        $licenses.StandardInput.WriteLine("y")
+        $licenses.WaitForExit()
         echo "Installing platform tools and system images..."
-        $result = Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "platform-tools", "platforms;android-30", "system-images;android-30;google_apis;x86_64" -NoNewWindow -Wait -PassThru
-        $result.WaitForExit()
+        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "platform-tools" -NoNewWindow -Wait
+        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "platforms;android-30" -NoNewWindow -Wait
+        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "system-images;android-30;google_apis;x86_64" -NoNewWindow -Wait
         echo "Android SDK setup completed."
       shell: pwsh
 

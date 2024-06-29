@@ -1,4 +1,4 @@
-name: Android Setup
+name: Android Appium Tests
 
 on:
   push:
@@ -9,86 +9,70 @@ on:
       - master
 
 jobs:
-  setup-android:
+  build:
     runs-on: windows-latest
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
 
-    - name: Set up Java
-      uses: actions/setup-java@v3
+    - name: Set up JDK
+      uses: actions/setup-java@v2
       with:
-        distribution: 'temurin'
-        java-version: '18'
+        distribution: 'adopt'
+        java-version: '18.0.2'
 
-    - name: Download Android Studio
+    - name: Download and install Android Studio
       run: |
         echo "Downloading Android Studio..."
-        $androidStudioUrl = "https://redirector.gvt1.com/edgedl/android/studio/install/2024.1.1.11/android-studio-2024.1.1.11-windows.exe"
-        $installerPath = "$env:GITHUB_WORKSPACE\android-studio.zip"
-        Invoke-WebRequest -Uri $androidStudioUrl -OutFile $installerPath
-        echo "Android Studio downloaded to $installerPath"
-      shell: pwsh
-
-    - name: Extract Android Studio
-      run: |
-        echo "Extracting Android Studio..."
-        Expand-Archive -Path "$env:GITHUB_WORKSPACE\android-studio.zip" -DestinationPath "$env:GITHUB_WORKSPACE\android-studio"
-        echo "Android Studio extracted to $env:GITHUB_WORKSPACE\android-studio"
-      shell: pwsh
-
-    - name: Install Android Studio
-      run: |
+        Invoke-WebRequest -Uri "https://redirector.gvt1.com/edgedl/android/studio/install/2024.1.1.11/android-studio-2024.1.1.11-windows.exe" -OutFile "android-studio-2024.1.1.11-windows.exe"
         echo "Installing Android Studio..."
-        Start-Process -FilePath "$env:GITHUB_WORKSPACE\android-studio\android-studio-2024.1.1.11-windows.exe" -ArgumentList "/S" -Wait -NoNewWindow
-        echo "Android Studio installation completed."
+        Start-Process -FilePath "android-studio-2024.1.1.11-windows.exe" -ArgumentList "/S" -Wait
+        echo "Android Studio installed."
       shell: pwsh
 
-    - name: Set ANDROID_HOME
+    - name: Set up Android SDK
       run: |
-        echo "Setting ANDROID_HOME environment variable..."
-        $androidSdkPath = "$env:USERPROFILE\AppData\Local\Android\Sdk"
-        [Environment]::SetEnvironmentVariable("ANDROID_HOME", $androidSdkPath, [EnvironmentVariableTarget]::Machine)
-        $env:ANDROID_HOME = $androidSdkPath
-        echo "ANDROID_HOME set to $androidSdkPath"
-      shell: pwsh
-
-    - name: Update PATH
-      run: |
-        echo "Updating PATH environment variable..."
-        $path = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine)
-        $newPath = "$path;$env:ANDROID_HOME\tools\bin;$env:ANDROID_HOME\platform-tools"
-        [System.Environment]::SetEnvironmentVariable("Path", $newPath, [EnvironmentVariableTarget]::Machine)
-        $env:Path = $newPath
-        echo "PATH updated with Android SDK paths."
-      shell: pwsh
-
-    - name: Install SDK Packages
-      run: |
-        echo "Installing SDK packages..."
-        cd "$env:ANDROID_HOME\tools\bin"
-        .\sdkmanager.bat "platform-tools" "platforms;android-30" "system-images;android-30;google_apis;x86_64"
-        echo "SDK packages installed."
+        echo "Setting up Android SDK..."
+        echo "sdk.dir=$env:ANDROID_HOME" > local.properties
+        echo "Accepting SDK licenses..."
+        yes | $env:ANDROID_HOME\tools\bin\sdkmanager --licenses
+        echo "Installing platform tools and system images..."
+        $env:ANDROID_HOME\tools\bin\sdkmanager "platform-tools" "platforms;android-30" "system-images;android-30;google_apis;x86_64"
+        echo "Android SDK setup completed."
       shell: pwsh
 
     - name: Create AVD
       run: |
         echo "Creating AVD..."
-        cd "$env:ANDROID_HOME\tools\bin"
-        .\avdmanager.bat create avd -n MyAVD -k "system-images;android-30;google_apis;x86_64" --device "pixel"
-        echo "AVD MyAVD created."
-      shell: pwsh
-
-    - name: Start AVD
-      run: |
+        $env:ANDROID_HOME\tools\bin\avdmanager create avd -n test_avd -k "system-images;android-30;google_apis;x86_64" -d "pixel"
         echo "Starting AVD..."
-        cd "$env:ANDROID_HOME\emulator"
-        .\emulator -avd MyAVD -no-snapshot-load -no-window -no-boot-anim
-        echo "AVD MyAVD started."
+        Start-Process -FilePath "$env:ANDROID_HOME\emulator\emulator.exe" -ArgumentList "-avd test_avd -no-snapshot-load -no-snapshot-save -no-window" -Wait
+        echo "AVD started."
       shell: pwsh
 
-    - name: Build and test
+    - name: Install Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+
+    - name: Install Appium
       run: |
-        mvn clean install
+        echo "Installing Appium..."
+        npm install -g appium
+        echo "Appium installed."
+      shell: pwsh
+
+    - name: Run Appium server
+      run: |
+        echo "Starting Appium server..."
+        Start-Process -FilePath "appium" -ArgumentList "--log-level info" -Wait
+        echo "Appium server started."
+      shell: pwsh
+
+    - name: Run Appium tests
+      run: |
+        echo "Running Appium tests..."
         mvn test
+        echo "Appium tests completed."
+      shell: pwsh

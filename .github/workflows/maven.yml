@@ -1,83 +1,36 @@
-name: Android Appium Tests
+name: CI with Screen Recording
 
-on:
-  push:
-    branches:
-      - '*'
-  pull_request:
-    branches:
-      - '*'
+on: [push]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Check out repository
       uses: actions/checkout@v2
 
-    - name: Set up JDK
-      uses: actions/setup-java@v2
-      with:
-        distribution: 'adopt'
-        java-version: '18.0.2'
+    - name: Install ffmpeg
+      run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
-    - name: Download and install Android Studio
+    - name: Start screen recording
       run: |
-        echo "Downloading Android Studio..."
-        Invoke-WebRequest -Uri "https://redirector.gvt1.com/edgedl/android/studio/install/2024.1.1.11/android-studio-2024.1.1.11-windows.exe" -OutFile "android-studio-2024.1.1.11-windows.exe"
-        echo "Installing Android Studio..."
-        Start-Process -FilePath "android-studio-2024.1.1.11-windows.exe" -ArgumentList "/S" -Wait
-        echo "Android Studio installed."
-      shell: pwsh
+        ffmpeg -y -video_size 1920x1080 -framerate 25 -f x11grab -i :0.0 -t 60 screen_recording.mp4 &
+      shell: bash
 
-    - name: Set up Android SDK
+    # Add your build and test steps here
+    # Ensure your tests and build steps run here
+
+    - name: Upload screen recording to Streamable
+      id: upload
       run: |
-        echo "Setting up Android SDK..."
-        $env:ANDROID_HOME="C:\Users\runneradmin\AppData\Local\Android\Sdk"
-        echo "sdk.dir=$env:ANDROID_HOME" > local.properties
-        echo "Accepting SDK licenses..."
-        $licenses = Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "--licenses" -NoNewWindow -Wait -PassThru
-        $licenses.StandardInput.WriteLine("y")
-        $licenses.WaitForExit()
-        echo "Installing platform tools and system images..."
-        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "platform-tools" -NoNewWindow -Wait
-        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "platforms;android-30" -NoNewWindow -Wait
-        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\sdkmanager.bat" -ArgumentList "system-images;android-30;google_apis;x86_64" -NoNewWindow -Wait
-        echo "Android SDK setup completed."
-      shell: pwsh
+        response=$(curl -X POST -F "file=@screen_recording.mp4" https://api.streamable.com/upload)
+        video_url=$(echo $response | jq -r '.shortcode')
+        echo "Recording URL: https://streamable.com/$video_url"
+        echo "::set-output name=video_url::https://streamable.com/$video_url"
+      env:
+        STREAMABLE_USER: ${{ secrets.STREAMABLE_USER }}
+        STREAMABLE_PASS: ${{ secrets.STREAMABLE_PASS }}
 
-    - name: Create AVD
-      run: |
-        echo "Creating AVD..."
-        Start-Process -FilePath "$env:ANDROID_HOME\tools\bin\avdmanager.bat" -ArgumentList "create avd -n test_avd -k \"system-images;android-30;google_apis;x86_64\" -d \"pixel\"" -NoNewWindow -Wait
-        echo "Starting AVD..."
-        Start-Process -FilePath "$env:ANDROID_HOME\emulator\emulator.exe" -ArgumentList "-avd test_avd -no-snapshot-load -no-snapshot-save -no-window" -NoNewWindow -Wait
-        echo "AVD started."
-      shell: pwsh
-
-    - name: Install Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'
-
-    - name: Install Appium
-      run: |
-        echo "Installing Appium..."
-        npm install -g appium
-        echo "Appium installed."
-      shell: pwsh
-
-    - name: Run Appium server
-      run: |
-        echo "Starting Appium server..."
-        Start-Process -FilePath "appium" -ArgumentList "--log-level info" -NoNewWindow -Wait
-        echo "Appium server started."
-      shell: pwsh
-
-    - name: Run Appium tests
-      run: |
-        echo "Running Appium tests..."
-        mvn test
-        echo "Appium tests completed."
-      shell: pwsh
+    - name: Display video URL
+      run: echo "Video URL is ${{ steps.upload.outputs.video_url }}"

@@ -1,4 +1,4 @@
-name: CI with Screenshots
+name: CI with Screen Recording
 
 on: [push]
 
@@ -10,19 +10,34 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
 
-    - name: Install scrot for screenshots
-      run: sudo apt-get update && sudo apt-get install -y scrot
-
-    - name: Take screenshots at intervals
+    - name: Install dependencies
       run: |
-        mkdir screenshots
-        for i in {1..5}; do
-          scrot "screenshots/screenshot_$i.png"
-          sleep 10
-        done
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg xvfb
 
-    - name: Upload screenshots
-      uses: actions/upload-artifact@v3
-      with:
-        name: screenshots
-        path: screenshots/
+    - name: Start Xvfb
+      run: |
+        Xvfb :99 -screen 0 1920x1080x24 &
+        export DISPLAY=:99
+
+    - name: Start screen recording
+      run: |
+        ffmpeg -y -video_size 1920x1080 -framerate 25 -f x11grab -i :99 -t 60 screen_recording.mp4 &
+      shell: bash
+
+    # Add your build and test steps here
+    # Ensure your tests and build steps run here
+
+    - name: Upload screen recording to Streamable
+      id: upload
+      run: |
+        response=$(curl -u "${{ secrets.STREAMABLE_USER }}:${{ secrets.STREAMABLE_PASS }}" -X POST -F "file=@screen_recording.mp4" https://api.streamable.com/upload)
+        video_url=$(echo $response | jq -r '.shortcode')
+        echo "Recording URL: https://streamable.com/$video_url"
+        echo "::set-output name=video_url::https://streamable.com/$video_url"
+      env:
+        STREAMABLE_USER: ${{ secrets.STREAMABLE_USER }}
+        STREAMABLE_PASS: ${{ secrets.STREAMABLE_PASS }}
+
+    - name: Display video URL
+      run: echo "Video URL is ${{ steps.upload.outputs.video_url }}"
